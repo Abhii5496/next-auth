@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
+import { EyeIcon, EyeSlashIcon } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import {
     Card,
@@ -24,6 +25,7 @@ export default function LoginPage() {
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
     const [isPending, setIsPending] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -36,8 +38,7 @@ export default function LoginPage() {
         const password = formData.get('password') as string
 
         try {
-            const { data } = await axios.post(
-                process.env.NEXT_PUBLIC_BASE_URL + '/api/sign-in',
+            const { data } = await axios.post('/api/sign-in',
                 { email, password }
             )
             if (data.error) {
@@ -91,15 +92,30 @@ export default function LoginPage() {
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="login-password">Password</FieldLabel>
-                                <Input
-                                    id="login-password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete="current-password"
-                                    required
-                                    disabled={isPending}
-                                    className="h-9"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="login-password"
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        autoComplete="current-password"
+                                        required
+                                        disabled={isPending}
+                                        className="h-9 pr-9"
+                                    />
+                                    <button
+                                        type="button"
+                                        tabIndex={-1}
+                                        onClick={() => setShowPassword((p) => !p)}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:pointer-events-none"
+                                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showPassword ? (
+                                            <EyeSlashIcon className="size-4" weight="regular" />
+                                        ) : (
+                                            <EyeIcon className="size-4" weight="regular" />
+                                        )}
+                                    </button>
+                                </div>
                             </Field>
                         </FieldGroup>
                     </CardContent>

@@ -42,6 +42,12 @@ export async function updateSession(request: NextRequest) {
     const isAuthRoute = authRoutes.some((route) =>
         request.nextUrl.pathname.startsWith(route)
     )
+    const isApiAuthRoute = request.nextUrl.pathname.includes("/api/") || false
+
+    // Allow unauthenticated API auth requests (sign-up, sign-in) through
+    if (isApiAuthRoute) {
+        return supabaseResponse
+    }
 
     // Not logged in and trying to access protected route → redirect to login
     if (!user && !isAuthRoute) {

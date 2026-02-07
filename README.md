@@ -30,7 +30,46 @@ npm install
 - **anon public** key → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`
 - **secret** key → `SUPABASE_SERVICE_ROLE_KEY`
 
-3. Enable **Email** auth in **Authentication → Providers** (default).
+1. Create the `public.users` table in **SQL Editor** (run the following):
+
+```sql
+create table public.users (
+  id uuid not null default auth.uid (),
+  fname text null,
+  lname text null,
+  is_active boolean not null default false,
+  avatar text null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  email text not null,
+  provider text null default 'email'::text,
+  constraint users_pkey primary key (id),
+  constraint users_email_key unique (email),
+  constraint users_id_fkey foreign key (id) references auth.users (id) on update cascade on delete cascade,
+  constraint users_email_check check ((length(email) <= 50))
+) tablespace pg_default;
+```
+
+1. Enable **Email** auth in **Authentication → Providers** (default).
+2. Make sure to turn off Confirm email switch (Supabase now put a restriction limited number of emails)
+3. If turned on use this:
+   - In **Authentication → URL Configuration**, set **Redirect URLs** to include:
+     - `http://localhost:3000/**` (local)
+     - `https://your-production-domain.com/**` (production)
+   - In **Authentication → Email Templates → Confirm signup**, use this template so the link points to your app’s `/auth/confirm` route:
+
+   ```html
+   <h2>Confirm your signup</h2>
+   <p>Follow this link to confirm your user:</p>
+   <p>
+     <a
+       href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
+       >Confirm your mail</a
+     >
+   </p>
+   ```
+
+   The confirmation link will send users to `/auth/confirm`, which verifies the OTP and upserts the user into `public.users`.
 
 ### 3. Environment variables
 
@@ -64,21 +103,6 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `/login` until you sign up or log in.
 
-## Email setup on Supabase
-
-1. In your Supabase project, go to **Authentication → Emails**.
-2. Under **Confirm your signup**, replace the default template with:
-
-```html
-<h2>Confirm your signup</h2>
-<p>Follow this link to confirm your user:</p>
-<p>
-  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
-    >Confirm your mail</a
-  >
-</p>
-```
-
 ## Project structure
 
 - `app/` – App Router pages and layout
@@ -100,7 +124,7 @@ Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-4. Deploy. The app will use the same env vars in production.
+1. Deploy. The app will use the same env vars in production.
 
 ## Tech stack
 

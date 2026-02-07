@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { redirect } from "next/navigation"
 import { cookies, headers } from "next/headers"
 import { supabaseAdmin } from "@/utils/supabase/supabase-admin"
 import { createClient } from "@/utils/supabase/server"
@@ -42,6 +43,43 @@ export async function POST(req: Request) {
         throw new Error("No user data returned from signup.");
       }
 
+      if (newUser?.session?.user?.email) {
+        const data = newUser
+        const fullName =
+          data.session!.user.user_metadata?.full_name ??
+          (data.session!.user.user_metadata?.name as string | undefined) ??
+          ""
+        const nameParts = fullName.trim().split(/\s+/)
+        const fname = nameParts[0] ?? null
+        const lname = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null
+
+        const payload = {
+          id: data.session!.user.id,
+          email: data.session!.user.email!,
+          fname,
+          lname,
+          avatar:
+            (data.session!.user.user_metadata?.avatar_url ??
+              data.session!.user.user_metadata?.avatar) ?? null,
+          is_active: true,
+          provider: data.session!.user.app_metadata?.provider ?? null,
+          updated_at: data.session!.user.updated_at,
+        }
+
+        const { error: insertError } = await supabaseAdmin
+          .from("users")
+          .upsert(payload, {
+            onConflict: "email",
+            ignoreDuplicates: false,
+          })
+
+        if (insertError) {
+          console.error("Failed to upsert user into public.users:", insertError)
+          redirect(
+            `/auth/error?error=Database&error_description=${encodeURIComponent(insertError.message)}`
+          )
+        }
+      }
 
       return NextResponse.json(
         { error: null, message: "Account created successfully." },
